@@ -53,7 +53,7 @@
         "options": {},
         "sendBody": true,
         "jsonParameters": true,
-        "bodyParametersJson": "{\n  \"name\": \"={{$json.user}}\",\n  \"email\": \"={{$json.user}}\",\n  \"status\": \"NEW\",\n  \"source\": \"inbound\"\n}"
+        "bodyParametersJson": "{\n  \"name\": \"={{$prevNode[\\\"Webhook\\\"].json.user}}\",\n  \"email\": \"={{$prevNode[\\\"Webhook\\\"].json.user}}\",\n  \"status\": \"NEW\",\n  \"source\": \"inbound\"\n}"
       },
       "id": "Create Lead",
       "name": "Create Lead",

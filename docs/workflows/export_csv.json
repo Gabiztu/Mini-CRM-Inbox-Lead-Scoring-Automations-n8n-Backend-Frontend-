@@ -1,0 +1,63 @@
+{
+  "name": "Export CSV via n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "export",
+        "httpMethod": "GET",
+        "responseMode": "lastNode"
+      },
+      "id": "Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/leads?page=1&pageSize=1000",
+        "options": {}
+      },
+      "id": "Fetch Leads",
+      "name": "Fetch Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const data = items[0]?.json || {};\nconst leads = Array.isArray(data.items) ? data.items : [];\nconst columns = ['ID','Name','Email','Status','Score','Source','Last Interaction'];\nfunction csvEscape(v){ if(v==null) return ''; const s=String(v); if(/[\",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"'; return s; }\nconst rows = [columns.join(',')];\nfor (const l of leads){\n  rows.push([l.id,l.name,l.email,l.status,l.score,l.source||'',l.lastInteraction||''].map(csvEscape).join(','));\n}\nreturn [{ json: { csv: rows.join('\n') } }];"
+      },
+      "id": "To CSV",
+      "name": "To CSV",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "responseBody": "={{$json.csv}}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "text/csv" },
+              { "name": "Content-Disposition", "value": "attachment; filename=leads-export.csv" }
+            ]
+          }
+        }
+      },
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1040, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [ [ { "node": "Fetch Leads", "type": "main", "index": 0 } ] ] },
+    "Fetch Leads": { "main": [ [ { "node": "To CSV", "type": "main", "index": 0 } ] ] },
+    "To CSV": { "main": [ [ { "node": "Respond", "type": "main", "index": 0 } ] ] }
+  },
+  "active": false,
+  "settings": {}
+}
