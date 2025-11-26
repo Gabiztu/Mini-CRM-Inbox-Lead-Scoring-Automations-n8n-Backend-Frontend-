@@ -25,6 +25,14 @@ export type Paginated<T> = {
   pageSize: number
 }
 
+export type Message = {
+  id: string
+  leadId: string
+  content: string
+  direction: 'INBOUND' | 'OUTBOUND' | string
+  timestamp: string
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
 export async function fetchLeads(params: {
@@ -54,5 +62,17 @@ export async function updateLead(
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`Failed to update lead: ${res.status}`)
+  return res.json()
+}
+
+export async function fetchLeadDetails(id: string): Promise<Lead> {
+  const res = await fetch(`${API_BASE}/api/leads/${id}`, { cache: 'no-store' })
+  if (!res.ok) throw new Error(`Failed to fetch lead: ${res.status}`)
+  return res.json()
+}
+
+export async function fetchMessages(leadId: string): Promise<Message[]> {
+  const res = await fetch(`${API_BASE}/api/messages/${leadId}`, { cache: 'no-store' })
+  if (!res.ok) throw new Error(`Failed to fetch messages: ${res.status}`)
   return res.json()
 }
