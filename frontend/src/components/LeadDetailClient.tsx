@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { fetchLeadDetails, fetchMessages, type Lead, type Message } from '@/lib/api'
 import { LeadInfoCard } from '@/components/LeadInfoCard'
 import { MessageTimeline } from '@/components/MessageTimeline'
@@ -9,15 +10,18 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function LeadDetailClient({ id }: { id: string }) {
+  const params = useParams() as { id?: string } | null
+  const effectiveId = id ?? params?.id ?? ''
   const [lead, setLead] = useState<Lead | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!effectiveId) return
     let mounted = true
     setLoading(true)
-    Promise.all([fetchLeadDetails(id), fetchMessages(id)])
+    Promise.all([fetchLeadDetails(effectiveId), fetchMessages(effectiveId)])
       .then(([l, m]) => {
         if (!mounted) return
         setLead(l)
@@ -29,7 +33,7 @@ export function LeadDetailClient({ id }: { id: string }) {
     return () => {
       mounted = false
     }
-  }, [id])
+  }, [effectiveId])
 
   if (loading) {
     return (
@@ -56,6 +60,14 @@ export function LeadDetailClient({ id }: { id: string }) {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
         {error}
+      </div>
+    )
+  }
+
+  if (!effectiveId) {
+    return (
+      <div className="rounded-lg border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-600">
+        Invalid lead URL
       </div>
     )
   }
