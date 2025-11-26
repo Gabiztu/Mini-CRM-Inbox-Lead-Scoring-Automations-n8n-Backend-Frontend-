@@ -27,8 +27,8 @@
     - [x] Install `concurrently`.
     - [x] Create `/n8n_data` directory.
 - [ ] **Frontend Setup**
-    - [ ] Run `npx create-next-app@latest frontend` (TS, Tailwind, ESLint, App Router).
-    - [ ] Initialize ShadCN UI (`npx shadcn-ui@latest init`).
+    - [x] Run `npx create-next-app@latest frontend` (TS, Tailwind, ESLint, App Router).
+    - [x] Initialize ShadCN UI (`npx shadcn-ui@latest init`).
     - [ ] Update `next.config.js` if needed to avoid port conflicts (default 3000 is fine).
 - [ ] **Backend Setup**
     - [ ] Create `/backend` folder.
