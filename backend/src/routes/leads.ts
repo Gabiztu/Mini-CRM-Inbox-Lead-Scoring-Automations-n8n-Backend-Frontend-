@@ -82,6 +82,22 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /leads/:id
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'id is required' });
+
+    const lead = await prisma.lead.findUnique({ where: { id }, include: { tags: true } });
+    if (!lead) return res.status(404).json({ error: 'Lead not found' });
+
+    return res.json(lead);
+  } catch (err: any) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to fetch lead' });
+  }
+});
+
 // POST /leads
 router.post('/', async (req, res) => {
   try {
