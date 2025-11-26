@@ -1,6 +1,6 @@
 # Story 1.3: Message & Export API
 
-**Status:** Draft
+**Status:** Done
 
 **Story:**
 **As a** System,
@@ -20,22 +20,22 @@
 4.  **Error Handling:** Returns 404 if Lead ID not found.
 
 **Tasks / Subtasks:**
-- [ ] **Message Controller & Service:**
-    - [ ] Implement `createMessage`:
-        - [ ] Prisma create on `Message` model.
-        - [ ] Prisma update on `Lead` model (set `lastInteraction = now()`).
-    - [ ] Implement `getMessages`:
-        - [ ] Prisma findMany with `where: { leadId }` and `orderBy: { timestamp: 'asc' }`.
-- [ ] **Export Controller:**
-    - [ ] Implement `exportLeads`:
-        - [ ] Fetch all leads from DB.
-        - [ ] Convert JSON to CSV format (using a library like `json2csv` or manual mapping).
-        - [ ] Set response headers (`Content-Disposition`, `Content-Type`).
-        - [ ] Stream/Send response.
-- [ ] **Register Routes:** Add `messages.routes.ts` and `export.routes.ts`.
-- [ ] **Manual Test:**
-    - [ ] Post a message -> Check if Lead's `lastInteraction` updated.
-    - [ ] Hit `/api/export` in browser -> Check if file downloads.
+- [x] **Message Controller & Service:**
+    - [x] Implement `createMessage`:
+        - [x] Prisma create on `Message` model.
+        - [x] Prisma update on `Lead` model (set `lastInteraction = now()`).
+    - [x] Implement `getMessages`:
+        - [x] Prisma findMany with `where: { leadId }` and `orderBy: { timestamp: 'asc' }`.
+- [x] **Export Controller:**
+    - [x] Implement `exportLeads`:
+        - [x] Fetch all leads from DB.
+        - [x] Convert JSON to CSV format (using a library like `json2csv` or manual mapping).
+        - [x] Set response headers (`Content-Disposition`, `Content-Type`).
+        - [x] Stream/Send response.
+- [x] **Register Routes:** Add `messages.routes.ts` and `export.routes.ts`.
+- [x] **Manual Test:**
+    - [x] Post a message -> Check if Lead's `lastInteraction` updated.
+    - [x] Hit `/api/export` in browser -> Check if file downloads.
 
 **Dev Notes:**
 - **Transaction:** When creating a message, updating the Lead's `lastInteraction` is crucial for the **Scheduler Automation** (Story 3.2) to work correctly later. Consider using `prisma.$transaction` to ensure data consistency.
