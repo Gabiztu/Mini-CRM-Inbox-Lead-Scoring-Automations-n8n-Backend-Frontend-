@@ -1,6 +1,6 @@
 # Story 1.4: Comprehensive Seed Data
 
-**Status:** Draft
+**Status:** Done
 
 **Story:**
 **As a** User,
@@ -16,15 +16,15 @@
 6.  **Idempotency:** The script handles re-runs gracefully (e.g., uses `upsert` or deletes existing data before seeding).
 
 **Tasks / Subtasks:**
-- [ ] **Configure Prisma Seeding:**
-    - [ ] Add `prisma.seed` config to `backend/package.json`.
-- [ ] **Create Seed Script:** `backend/prisma/seed.ts`.
-    - [ ] **Clean:** Delete existing `Message`, `Tag`, and `Lead` records (in correct order).
-    - [ ] **Define Data:** Create static arrays of realistic names, emails, and scenarios.
-    - [ ] **Insert Leads:** Loop through data and create leads.
-    - [ ] **Insert Tags:** Attach tags to specific leads.
-    - [ ] **Insert Messages:** Create conversation history for a subset of leads.
-- [ ] **Test:** Run `npx prisma db seed` and verify data exists in SQLite (using Prisma Studio or CLI).
+- [x] **Configure Prisma Seeding:**
+    - [x] Add `prisma.seed` config to `backend/package.json`.
+- [x] **Create Seed Script:** `backend/prisma/seed.ts`.
+    - [x] **Clean:** Delete existing `Message`, `Tag`, and `Lead` records (in correct order).
+    - [x] **Define Data:** Create static arrays of realistic names, emails, and scenarios.
+    - [x] **Insert Leads:** Loop through data and create leads.
+    - [x] **Insert Tags:** Attach tags to specific leads.
+    - [x] **Insert Messages:** Create conversation history for a subset of leads.
+- [x] **Test:** Run `npx prisma db seed` and verify data exists in SQLite (using Prisma Studio or CLI).
 
 **Dev Notes:**
 - **Realistic Data:** Do not use "Test 1", "Test 2". Use names like "Alice Smith", "Globex Corp".
