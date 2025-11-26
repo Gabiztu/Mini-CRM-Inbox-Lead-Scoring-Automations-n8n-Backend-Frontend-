@@ -1,16 +1,22 @@
 const fs = require('fs');
 const path = require('path');
 
-const src = path.join(__dirname, '..', 'docs', 'workflows', 'inbound_scoring.json');
+const srcDir = path.join(__dirname, '..', 'docs', 'workflows');
 const destDir = path.join(__dirname, '..', 'n8n_data', 'workflows');
-const dest = path.join(destDir, 'inbound_scoring.json');
 
 try {
   if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-  const data = fs.readFileSync(src);
-  fs.writeFileSync(dest, data);
-  console.log('n8n workflow prepared at', dest);
+  if (fs.existsSync(srcDir)) {
+    const files = fs.readdirSync(srcDir).filter(f => f.endsWith('.json'));
+    for (const f of files) {
+      const src = path.join(srcDir, f);
+      const dest = path.join(destDir, f);
+      fs.copyFileSync(src, dest);
+      console.log('Copied workflow:', f);
+    }
+  }
+  console.log('n8n workflows prepared in', destDir);
 } catch (e) {
-  console.error('Failed to prepare n8n workflow:', e.message);
+  console.error('Failed to prepare n8n workflows:', e.message);
   process.exit(0);
 }

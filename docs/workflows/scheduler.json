@@ -1,0 +1,67 @@
+{
+  "name": "Lead Status Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            { "mode": "everyMinute", "minutesInterval": 15 }
+          ]
+        }
+      },
+      "id": "Cron",
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/leads?page=1&pageSize=1000",
+        "options": {}
+      },
+      "id": "Fetch Leads",
+      "name": "Fetch Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const data = items[0]?.json || {};\nconst leads = Array.isArray(data.items) ? data.items : [];\nconst now = new Date();\nconst twoHours = 2 * 60 * 60 * 1000;\nconst fortyEightHours = 48 * 60 * 60 * 1000;\n\nconst updates = [];\nfor (const lead of leads) {\n  const last = lead.lastInteraction ? new Date(lead.lastInteraction) : null;\n  if (!last) continue;\n  const diff = now - last;\n  // Cold logic (48h) — skip Won/Lost\n  if (diff > fortyEightHours && lead.status !== 'WON' && lead.status !== 'LOST' && lead.status !== 'COLD') {\n    updates.push({ json: { id: lead.id, newStatus: 'COLD' } });\n    continue;\n  }\n  // Needs Followup (2h) — skip Won/Lost/Cold\n  if (diff > twoHours && lead.status !== 'WON' && lead.status !== 'LOST' && lead.status !== 'COLD' && lead.status !== 'NEEDS_FOLLOWUP') {\n    updates.push({ json: { id: lead.id, newStatus: 'NEEDS_FOLLOWUP' } });\n  }\n}\nreturn updates;"
+      },
+      "id": "Compute Updates",
+      "name": "Compute Updates",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/leads/{{$json.id}}",
+        "options": {},
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParametersJson": "{\n  \"status\": \"={{$json.newStatus}}\"\n}"
+      },
+      "id": "Update Lead Status",
+      "name": "Update Lead Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1020, 300]
+    }
+  ],
+  "connections": {
+    "Cron": {
+      "main": [ [ { "node": "Fetch Leads", "type": "main", "index": 0 } ] ]
+    },
+    "Fetch Leads": {
+      "main": [ [ { "node": "Compute Updates", "type": "main", "index": 0 } ] ]
+    },
+    "Compute Updates": {
+      "main": [ [ { "node": "Update Lead Status", "type": "main", "index": 0 } ] ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}
