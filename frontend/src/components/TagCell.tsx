@@ -59,8 +59,14 @@ export function TagCell({
   }
 
   return (
-    <div className="relative">
-      <div className="flex flex-wrap gap-1.5" onClick={() => setOpen((o) => !o)}>
+    <div className="relative" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="flex flex-wrap gap-1.5"
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen((o) => !o)
+        }}
+      >
         {tagNames.length ? (
           tagNames.map((name) => (
             <Badge key={name} className="text-white" style={{ backgroundColor: '#666' }}>
@@ -72,7 +78,10 @@ export function TagCell({
         )}
       </div>
       {open && (
-        <div className="absolute z-20 mt-2 w-64 rounded-md border border-zinc-200 bg-white p-2 shadow-sm">
+        <div
+          className="absolute z-20 mt-2 w-64 rounded-md border border-zinc-200 bg-white p-2 shadow-sm"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="mb-2 text-xs font-medium text-zinc-600">Available Tags</div>
           <div className="mb-2 flex flex-wrap gap-1.5">
             {Array.from(new Set([...availableTags, ...tagNames])).map((name) => (
@@ -102,7 +111,14 @@ export function TagCell({
                 if (e.key === 'Enter') addNewTag()
               }}
             />
-            <Button variant="outline" onClick={addNewTag} disabled={pending}>
+            <Button
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation()
+                addNewTag()
+              }}
+              disabled={pending}
+            >
               Add
             </Button>
           </div>
