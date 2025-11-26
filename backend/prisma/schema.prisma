@@ -2,18 +2,14 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
-enum MessageDirection {
-  INBOUND
-  OUTBOUND
-}
 
 model Lead {
   id              String    @id @default(uuid())
@@ -32,7 +28,7 @@ model Lead {
 model Message {
   id        String           @id @default(uuid())
   content   String
-  direction MessageDirection
+  direction String
   timestamp DateTime         @default(now())
   lead      Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
   leadId    String

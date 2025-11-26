@@ -1,9 +1,15 @@
+import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
+import leadsRouter from './routes/leads';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
+app.use(cors({ origin: 'http://localhost:3000', credentials: false }));
+
+app.use('/leads', leadsRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
