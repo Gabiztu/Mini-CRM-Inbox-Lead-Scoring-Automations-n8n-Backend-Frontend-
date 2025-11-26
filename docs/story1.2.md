@@ -1,6 +1,6 @@
 # Story 1.2: Lead CRUD API
 
-Status: In Progress
+Status: Done
 
 Acceptance Criteria:
 - GET /leads supports search/filter/sort/pagination
@@ -15,4 +15,4 @@ Tasks:
 - [x] Implement POST /leads (with optional tags)
 - [x] Implement PUT /leads/:id (status/score/tags replace)
 - [x] Implement DELETE /leads/:id
-- [ ] Validate endpoints locally (manual smoke)
+- [x] Validate endpoints locally (manual smoke)
