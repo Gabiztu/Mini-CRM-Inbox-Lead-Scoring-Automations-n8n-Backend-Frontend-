@@ -12,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Search } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { StatusCell } from '@/components/StatusCell'
+import { TagCell } from '@/components/TagCell'
 
 const STATUSES = ['ALL', 'NEW', 'QUALIFIED', 'WON', 'LOST', 'COLD', 'NEEDS_FOLLOWUP'] as const
 
@@ -73,6 +75,12 @@ export function LeadTable() {
     // Reset to page 1 on filter change
     setPage(1)
   }, [q, status])
+
+  const availableTags = useMemo(() => {
+    const set = new Set<string>()
+    for (const l of allLeads) for (const t of l.tags || []) set.add(t.name)
+    return Array.from(set).sort()
+  }, [allLeads])
 
   return (
     <div className="space-y-4">
@@ -169,26 +177,23 @@ export function LeadTable() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium text-white ${statusBadgeClasses[l.status] || 'bg-zinc-600'}`}>
-                      {l.status === 'NEEDS_FOLLOWUP' ? 'NEEDS FOLLOWUP' : l.status}
-                    </span>
+                    <StatusCell
+                      id={l.id}
+                      value={l.status}
+                      onUpdated={(newStatus) =>
+                        setAllLeads((rows) => rows.map((x) => (x.id === l.id ? { ...x, status: newStatus as any } : x)))
+                      }
+                    />
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1.5">
-                      {l.tags?.length ? (
-                        l.tags.map((t) => (
-                          <Badge
-                            key={t.id}
-                            className="text-white"
-                            style={{ backgroundColor: t.color || '#666' }}
-                          >
-                            {t.name}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-xs text-zinc-400">—</span>
-                      )}
-                    </div>
+                    <TagCell
+                      id={l.id}
+                      tags={l.tags || []}
+                      availableTags={availableTags}
+                      onUpdated={(newTags) =>
+                        setAllLeads((rows) => rows.map((x) => (x.id === l.id ? { ...x, tags: newTags } : x)))
+                      }
+                    />
                   </TableCell>
                   <TableCell>{l.score}</TableCell>
                   <TableCell>
