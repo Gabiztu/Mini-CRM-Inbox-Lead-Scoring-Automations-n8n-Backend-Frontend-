@@ -41,8 +41,8 @@
     - [x] Add `Lead`, `Message`, `Tag` models to schema.
     - [x] Run `npx prisma db push` to create the local SQLite file.
 - [ ] **Orchestration**
-    - [ ] Add `dev` script to root `package.json`: `concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:n8n\"`.
-    - [ ] Add sub-scripts:
+    - [x] Add `dev` script to root `package.json`: `concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:n8n\"`.
+    - [x] Add sub-scripts:
         - `dev:frontend`: `cd frontend && npm run dev`
         - `dev:backend`: `cd backend && npm run dev`
         - `dev:n8n`: `N8N_USER_FOLDER=./n8n_data npx n8n start`
