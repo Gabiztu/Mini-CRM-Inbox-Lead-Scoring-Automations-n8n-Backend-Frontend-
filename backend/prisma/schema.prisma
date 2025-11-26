@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model Lead {
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  status          String
+  score           Int       @default(0)
+  source          String?
+  lastInteraction DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  messages        Message[]
+  tags            Tag[]
+}
+
+model Message {
+  id        String           @id @default(uuid())
+  content   String
+  direction MessageDirection
+  timestamp DateTime         @default(now())
+  lead      Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId    String
+}
+
+model Tag {
+  id     String @id @default(uuid())
+  name   String
+  color  String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId String
+}

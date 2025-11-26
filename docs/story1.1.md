@@ -31,15 +31,15 @@
     - [x] Initialize ShadCN UI (`npx shadcn-ui@latest init`).
     - [ ] Update `next.config.js` if needed to avoid port conflicts (default 3000 is fine).
 - [ ] **Backend Setup**
-    - [ ] Create `/backend` folder.
-    - [ ] Initialize `package.json` and install `express`, `typescript`, `ts-node`, `prisma`, `@prisma/client`.
-    - [ ] Create `tsconfig.json` for backend.
-    - [ ] Create basic `src/index.ts` server entry point listening on port 4000.
+    - [x] Create `/backend` folder.
+    - [x] Initialize `package.json` and install `express`, `typescript`, `ts-node`, `prisma`, `@prisma/client`.
+    - [x] Create `tsconfig.json` for backend.
+    - [x] Create basic `src/index.ts` server entry point listening on port 4000.
 - [ ] **Database & Prisma**
-    - [ ] Run `npx prisma init` in `/backend`.
-    - [ ] Update `schema.prisma` provider to `sqlite`.
-    - [ ] Add `Lead`, `Message`, `Tag` models to schema.
-    - [ ] Run `npx prisma db push` to create the local SQLite file.
+    - [x] Run `npx prisma init` in `/backend`.
+    - [x] Update `schema.prisma` provider to `sqlite`.
+    - [x] Add `Lead`, `Message`, `Tag` models to schema.
+    - [x] Run `npx prisma db push` to create the local SQLite file.
 - [ ] **Orchestration**
     - [ ] Add `dev` script to root `package.json`: `concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:n8n\"`.
     - [ ] Add sub-scripts:
