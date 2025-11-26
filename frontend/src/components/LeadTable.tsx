@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Search } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useRouter } from 'next/navigation'
 import { StatusCell } from '@/components/StatusCell'
 import { TagCell } from '@/components/TagCell'
 
@@ -27,6 +28,7 @@ const statusBadgeClasses: Record<string, string> = {
 }
 
 export function LeadTable() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [allLeads, setAllLeads] = useState<Lead[]>([])
@@ -166,7 +168,11 @@ export function LeadTable() {
 
             {!loading && !error &&
               pageItems.map((l) => (
-                <TableRow key={l.id}>
+                <TableRow
+                  key={l.id}
+                  onClick={() => router.push(`/leads/${l.id}`)}
+                  className="cursor-pointer"
+                >
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar name={l.name} />
