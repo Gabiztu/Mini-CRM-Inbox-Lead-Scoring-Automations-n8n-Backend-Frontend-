@@ -33,7 +33,12 @@ export type Message = {
   timestamp: string
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+// Use IPv4 loopback on the server to avoid potential IPv6 ::1 resolution issues with "localhost" on Windows.
+// Keep localhost for browser requests to match CORS origin exactly.
+const API_BASE =
+  typeof window === 'undefined'
+    ? process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000'
+    : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
 export async function fetchLeads(params: {
   page?: number

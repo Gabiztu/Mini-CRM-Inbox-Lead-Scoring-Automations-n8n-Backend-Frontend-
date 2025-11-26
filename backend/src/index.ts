@@ -9,7 +9,18 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:3000', credentials: false }));
+// Allow both localhost and 127.0.0.1 origins for dev convenience
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true)
+      const allowed = ['http://localhost:3000', 'http://127.0.0.1:3000']
+      if (allowed.includes(origin)) return callback(null, true)
+      return callback(null, false)
+    },
+    credentials: false,
+  })
+)
 
 app.use('/leads', leadsRouter);
 app.use('/api/leads', leadsRouter);
