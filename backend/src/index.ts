@@ -12,6 +12,7 @@ app.use(express.json());
 app.use(cors({ origin: 'http://localhost:3000', credentials: false }));
 
 app.use('/leads', leadsRouter);
+app.use('/api/leads', leadsRouter);
 app.use('/api/messages', messagesRouter);
 app.use('/api/export', exportRouter);
 
