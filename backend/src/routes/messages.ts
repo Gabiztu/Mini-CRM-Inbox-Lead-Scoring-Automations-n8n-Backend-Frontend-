@@ -56,9 +56,10 @@ router.get('/:leadId', async (req, res) => {
       return res.status(400).json({ error: 'leadId is required' });
     }
 
+    // If lead not found, return empty list instead of 404 to keep UI resilient
     const lead = await prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead) {
-      return res.status(404).json({ error: 'Lead not found' });
+      return res.json([]);
     }
 
     const messages = await prisma.message.findMany({
