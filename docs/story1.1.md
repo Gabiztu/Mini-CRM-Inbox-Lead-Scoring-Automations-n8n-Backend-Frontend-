@@ -21,11 +21,11 @@
     *   n8n on port 5678
 
 **Tasks / Subtasks:**
-- [ ] **Root Setup**
-    - [ ] Create project folder `mini-crm`.
-    - [ ] Initialize root `package.json`.
-    - [ ] Install `concurrently`.
-    - [ ] Create `/n8n_data` directory.
+- [x] **Root Setup**
+    - [x] Create project folder `mini-crm`.
+    - [x] Initialize root `package.json`.
+    - [x] Install `concurrently`.
+    - [x] Create `/n8n_data` directory.
 - [ ] **Frontend Setup**
     - [ ] Run `npx create-next-app@latest frontend` (TS, Tailwind, ESLint, App Router).
     - [ ] Initialize ShadCN UI (`npx shadcn-ui@latest init`).
