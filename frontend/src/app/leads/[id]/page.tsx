@@ -9,10 +9,18 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
   let lead: Awaited<ReturnType<typeof fetchLeadDetails>> | null = null
   let messages: Awaited<ReturnType<typeof fetchMessages>> = []
 
+  // Fetch lead first; if it fails, show Not Found. Don't let message fetch failure hide the lead.
   try {
-    ;[lead, messages] = await Promise.all([fetchLeadDetails(id), fetchMessages(id)])
+    lead = await fetchLeadDetails(id)
   } catch (e) {
     lead = null
+  }
+  if (lead) {
+    try {
+      messages = await fetchMessages(id)
+    } catch (e) {
+      messages = []
+    }
   }
 
   return (

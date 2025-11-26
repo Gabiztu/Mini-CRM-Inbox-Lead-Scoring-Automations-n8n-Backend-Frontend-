@@ -78,7 +78,7 @@ export function LeadTable() {
       rows = rows.filter((l) => l.score >= min && l.score <= max)
     }
     return rows
-  }, [allLeads, q, status])
+  }, [allLeads, q, status, tagFilter, scoreRange])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const currentPage = Math.min(page, totalPages)
@@ -87,7 +87,7 @@ export function LeadTable() {
   useEffect(() => {
     // Reset to page 1 on filter change
     setPage(1)
-  }, [q, status])
+  }, [q, status, tagFilter, scoreRange])
 
   const availableTags = useMemo(() => {
     const set = new Set<string>()
