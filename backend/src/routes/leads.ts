@@ -7,7 +7,7 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const {
-      q,
+      q: rawQ,
       status,
       minScore,
       maxScore,
@@ -17,6 +17,9 @@ router.get('/', async (req, res) => {
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = req.query as Record<string, string>;
+
+    const searchParam = (req.query as any).search as string | undefined;
+    const q = rawQ || searchParam;
 
     const pageNum = Math.max(parseInt(String(page), 10) || 1, 1);
     const takeNum = Math.min(Math.max(parseInt(String(pageSize), 10) || 20, 1), 100);

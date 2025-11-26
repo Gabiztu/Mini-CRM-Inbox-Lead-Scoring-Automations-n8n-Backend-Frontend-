@@ -1,0 +1,194 @@
+{
+  "name": "Inbound Scoring Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "inbound",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {
+          "responseData": "{\"status\":\"ok\"}",
+          "responseCode": 200
+        }
+      },
+      "id": "Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/leads",
+        "options": {},
+        "queryParametersUi": {
+          "parameter": [
+            { "name": "search", "value": "={{$json.user}}" }
+          ]
+        }
+      },
+      "id": "Get Lead",
+      "name": "Get Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            { "value1": "={{$json.total}}", "operation": "larger", "value2": 0 }
+          ]
+        }
+      },
+      "id": "Found?",
+      "name": "Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/leads",
+        "options": {},
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParametersJson": "{\n  \"name\": \"={{$json.user}}\",\n  \"email\": \"={{$json.user}}\",\n  \"status\": \"NEW\",\n  \"source\": \"inbound\"\n}"
+      },
+      "id": "Create Lead",
+      "name": "Create Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1020, 460]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            { "name": "leadId", "value": "={{$json.items[0].id}}" },
+            { "name": "message", "value": "={{$prevNode[\"Webhook\"].json.message}}" }
+          ]
+        }
+      },
+      "id": "Set Existing",
+      "name": "Set Existing",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1020, 240]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            { "name": "leadId", "value": "={{$json.id}}" },
+            { "name": "message", "value": "={{$prevNode[\"Webhook\"].json.message}}" }
+          ]
+        }
+      },
+      "id": "Set New",
+      "name": "Set New",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1240, 460]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "combineMode": "mergeByIndex"
+      },
+      "id": "Merge Context",
+      "name": "Merge Context",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [1420, 320]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/messages",
+        "options": {},
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParametersJson": "{\n  \"leadId\": \"={{$json.leadId}}\",\n  \"content\": \"={{$json.message}}\",\n  \"direction\": \"INBOUND\"\n}"
+      },
+      "id": "Create Message",
+      "name": "Create Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1640, 320]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/leads/{{$json.leadId}}",
+        "options": {}
+      },
+      "id": "Get Lead By Id",
+      "name": "Get Lead By Id",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1860, 320]
+    },
+    {
+      "parameters": {
+        "functionCode": "const text = ($prevNode['Webhook'].json.message || '').toLowerCase();\nlet scoreDelta = 0;\nif (text.includes('buy') || text.includes('contract') || text.includes('urgent')) scoreDelta += 20;\nif (text.includes('interested') || text.includes('demo') || text.includes('pricing')) scoreDelta += 10;\nif (text.includes('unsubscribe') || text.includes('remove') || text.includes('no thanks')) scoreDelta -= 10;\nreturn [{ json: { scoreDelta, currentScore: $json.score, leadId: $json.id } }];"
+      },
+      "id": "Calc Score",
+      "name": "Calc Score",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [2080, 320]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/leads/{{$json.leadId}}",
+        "options": {},
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParametersJson": "={{ (() => { const newScore = ($json.currentScore || 0) + ($json.scoreDelta || 0); const body = { score: newScore }; if (newScore > 40) body.status = 'QUALIFIED'; return JSON.stringify(body); })() }}"
+      },
+      "id": "Update Lead",
+      "name": "Update Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2300, 320]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [ [ { "node": "Get Lead", "type": "main", "index": 0 } ] ]
+    },
+    "Get Lead": {
+      "main": [ [ { "node": "Found?", "type": "main", "index": 0 } ] ]
+    },
+    "Found?": {
+      "main": [
+        [ { "node": "Set Existing", "type": "main", "index": 0 } ],
+        [ { "node": "Create Lead", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Create Lead": {
+      "main": [ [ { "node": "Set New", "type": "main", "index": 0 } ] ]
+    },
+    "Set Existing": {
+      "main": [ [ { "node": "Merge Context", "type": "main", "index": 0 } ] ]
+    },
+    "Set New": {
+      "main": [ [ { "node": "Merge Context", "type": "main", "index": 1 } ] ]
+    },
+    "Merge Context": {
+      "main": [ [ { "node": "Create Message", "type": "main", "index": 0 } ] ]
+    },
+    "Create Message": {
+      "main": [ [ { "node": "Get Lead By Id", "type": "main", "index": 0 } ] ]
+    },
+    "Get Lead By Id": {
+      "main": [ [ { "node": "Calc Score", "type": "main", "index": 0 } ] ]
+    },
+    "Calc Score": {
+      "main": [ [ { "node": "Update Lead", "type": "main", "index": 0 } ] ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}
