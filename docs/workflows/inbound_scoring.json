@@ -110,7 +110,7 @@
         "options": {},
         "sendBody": true,
         "jsonParameters": true,
-        "bodyParametersJson": "{\n  \"leadId\": \"={{$json.leadId}}\",\n  \"content\": \"={{$json.message}}\",\n  \"direction\": \"INBOUND\"\n}"
+        "bodyParametersJson": "{\n  \"leadId\": \"={{$json.leadId}}\",\n  \"content\": \"={{$json.message}}\",\n  \"direction\": \"INBOUND\",\n  \"timestamp\": \"={{$prevNode[\\\"Webhook\\\"].json.timestamp}}\"\n}"
       },
       "id": "Create Message",
       "name": "Create Message",
