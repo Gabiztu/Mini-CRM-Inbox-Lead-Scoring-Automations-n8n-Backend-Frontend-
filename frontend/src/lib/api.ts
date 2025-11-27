@@ -95,3 +95,18 @@ export async function fetchScoreHistory(leadId: string): Promise<ScoringEvent[]>
   if (!res.ok) throw new Error(`Failed to fetch score history: ${res.status}`)
   return res.json()
 }
+
+export async function createMessage(data: {
+  leadId: string
+  content: string
+  direction: 'INBOUND' | 'OUTBOUND'
+  timestamp?: string
+}): Promise<Message> {
+  const res = await fetch(`${API_BASE}/api/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`Failed to create message: ${res.status}`)
+  return res.json()
+}

@@ -9,6 +9,7 @@ import { MessageTimeline } from '@/components/MessageTimeline'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScoreHistory } from '@/components/ScoreHistory'
+import { MessageComposer } from '@/components/MessageComposer'
 
 export function LeadDetailClient({ id }: { id: string }) {
   const params = useParams() as { id?: string } | null
@@ -98,6 +99,24 @@ export function LeadDetailClient({ id }: { id: string }) {
           <div className="p-3">
             <MessageTimeline messages={messages} />
           </div>
+        </div>
+        <div className="mt-4">
+          <MessageComposer
+            leadId={lead.id}
+            onSent={async (msg) => {
+              // Optimistically append message
+              setMessages((prev) => [...prev, msg])
+              // Refresh lead + score history after scoring webhook runs
+              try {
+                const [l, ev] = await Promise.all([
+                  fetchLeadDetails(lead.id),
+                  fetchScoreHistory(lead.id),
+                ])
+                setLead(l)
+                setEvents(ev)
+              } catch (_) {}
+            }}
+          />
         </div>
       </div>
     </div>

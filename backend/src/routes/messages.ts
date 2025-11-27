@@ -9,7 +9,7 @@ const isValidDirection = (dir: unknown): dir is 'INBOUND' | 'OUTBOUND' =>
 // POST /api/messages
 router.post('/', async (req, res) => {
   try {
-    const { leadId, content, direction } = req.body || {};
+    const { leadId, content, direction, timestamp } = req.body || {};
 
     if (!leadId || !content || !direction) {
       return res.status(400).json({ error: 'leadId, content, and direction are required' });
@@ -25,6 +25,7 @@ router.post('/', async (req, res) => {
     }
 
     const now = new Date();
+    const ts: Date = timestamp ? new Date(timestamp) : now;
 
     const [message] = await prisma.$transaction([
       prisma.message.create({
@@ -32,12 +33,12 @@ router.post('/', async (req, res) => {
           leadId,
           content,
           direction, // stored as string; validated against allowed values
-          timestamp: now,
+          timestamp: ts,
         },
       }),
       prisma.lead.update({
         where: { id: leadId },
-        data: { lastInteraction: now },
+        data: { lastInteraction: ts },
       }),
     ]);
 
