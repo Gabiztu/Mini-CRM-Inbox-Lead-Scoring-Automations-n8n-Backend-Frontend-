@@ -35,6 +35,8 @@ export function LeadTable() {
 
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<(typeof STATUSES)[number]>('ALL')
+  const [scoreRange, setScoreRange] = useState<'ALL' | '0-10' | '11-30' | '31-50' | '51-100'>('ALL')
+  const [tagFilter, setTagFilter] = useState<'ALL' | string>('ALL')
 
   // UI pagination (client-side)
   const [page, setPage] = useState(1)
@@ -66,8 +68,17 @@ export function LeadTable() {
     if (status !== 'ALL') {
       rows = rows.filter((l) => l.status === status)
     }
+    if (tagFilter !== 'ALL') {
+      rows = rows.filter((l) => (l.tags || []).some((t) => t.name === tagFilter))
+    }
+    if (scoreRange !== 'ALL') {
+      const [minStr, maxStr] = scoreRange.split('-')
+      const min = Number(minStr)
+      const max = Number(maxStr)
+      rows = rows.filter((l) => l.score >= min && l.score <= max)
+    }
     return rows
-  }, [allLeads, q, status])
+  }, [allLeads, q, status, tagFilter, scoreRange])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const currentPage = Math.min(page, totalPages)
@@ -76,7 +87,7 @@ export function LeadTable() {
   useEffect(() => {
     // Reset to page 1 on filter change
     setPage(1)
-  }, [q, status])
+  }, [q, status, tagFilter, scoreRange])
 
   const availableTags = useMemo(() => {
     const set = new Set<string>()
@@ -86,7 +97,7 @@ export function LeadTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative w-full max-w-md">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-400" />
           <Input
@@ -96,14 +107,38 @@ export function LeadTable() {
             onChange={(e) => setQ(e.target.value)}
           />
         </div>
-        <div className="w-48">
-          <Select value={status} onChange={(e) => setStatus(e.target.value as any)}>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s === 'NEEDS_FOLLOWUP' ? 'NEEDS FOLLOWUP' : s}
-              </option>
-            ))}
-          </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Status filter */}
+          <div className="w-44">
+            <Select value={status} onChange={(e) => setStatus(e.target.value as any)}>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s === 'NEEDS_FOLLOWUP' ? 'NEEDS FOLLOWUP' : s}
+                </option>
+              ))}
+            </Select>
+          </div>
+          {/* Score range filter */}
+          <div className="w-40">
+            <Select value={scoreRange} onChange={(e) => setScoreRange(e.target.value as any)}>
+              <option value="ALL">ALL SCORES</option>
+              <option value="0-10">0–10</option>
+              <option value="11-30">11–30</option>
+              <option value="31-50">31–50</option>
+              <option value="51-100">51–100</option>
+            </Select>
+          </div>
+          {/* Tag filter */}
+          <div className="w-44">
+            <Select value={tagFilter} onChange={(e) => setTagFilter(e.target.value as any)}>
+              <option value="ALL">ALL TAGS</option>
+              {availableTags.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -182,7 +217,7 @@ export function LeadTable() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <StatusCell
                       id={l.id}
                       value={l.status}
@@ -191,7 +226,7 @@ export function LeadTable() {
                       }
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <TagCell
                       id={l.id}
                       tags={l.tags || []}

@@ -1,0 +1,119 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "export",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-export",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [460, 460]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/leads?page=1&pageSize=1000",
+        "options": {}
+      },
+      "id": "fetch-leads-export",
+      "name": "Fetch Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 460]
+    },
+    {
+      "parameters": {
+        "jsCode": "// UNIVERSAL FAN-OUT\nif (items.length > 1) return items;\nconst data = items[0].json;\nif (data.items && Array.isArray(data.items)) return data.items.map(item => ({ json: item }));\nif (data.data && Array.isArray(data.data)) return data.data.map(item => ({ json: item }));\nif (Array.isArray(data)) return data.map(item => ({ json: item }));\nreturn items;"
+      },
+      "id": "fan-out-node",
+      "name": "Fan Out Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 460]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manual CSV Builder with Excel Magic\nconst cols = ['ID','Name','Email','Status','Score','Source','Last Interaction'];\n\nfunction esc(v){\n  if(v==null) return '';\n  const s=String(v);\n  // Escape quotes if needed\n  return /[\\\",\\n\\r]/.test(s) ? '\"' + s.replace(/\"/g,'\"\"') + '\"' : s;\n}\n\nconst rows = [cols.join(',')];\n\nfor (const { json:l } of items) {\n  rows.push([\n    l.id,\n    l.name,\n    l.email,\n    l.status,\n    l.score,\n    l.source||'',\n    l.lastInteraction||''\n  ].map(esc).join(','));\n}\n\n// 1. Add BOM (\\uFEFF) for UTF-8 support\n// 2. Add 'sep=,' line so Excel knows to use commas\n// 3. Join with CRLF (\\r\\n)\nconst csvContent = '\\uFEFF' + ['sep=,', ...rows].join('\\r\\n');\n\nreturn [{ json: { csv: csvContent } }];"
+      },
+      "id": "build-csv-node",
+      "name": "Build CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 460]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.csv }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/csv; charset=utf-8"
+              },
+              {
+                "name": "Content-Disposition",
+                "value": "attachment; filename=leads-export.csv"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-export",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 460]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Leads": {
+      "main": [
+        [
+          {
+            "node": "Fan Out Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fan Out Items": {
+      "main": [
+        [
+          {
+            "node": "Build CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build CSV": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

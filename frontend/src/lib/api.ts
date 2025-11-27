@@ -33,7 +33,20 @@ export type Message = {
   timestamp: string
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+export type ScoringEvent = {
+  id: string
+  leadId: string
+  delta: number
+  newScore: number
+  createdAt: string
+}
+
+// Use IPv4 loopback on the server to avoid potential IPv6 ::1 resolution issues with "localhost" on Windows.
+// Keep localhost for browser requests to match CORS origin exactly.
+const API_BASE =
+  typeof window === 'undefined'
+    ? process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000'
+    : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
 export async function fetchLeads(params: {
   page?: number
@@ -74,5 +87,26 @@ export async function fetchLeadDetails(id: string): Promise<Lead> {
 export async function fetchMessages(leadId: string): Promise<Message[]> {
   const res = await fetch(`${API_BASE}/api/messages/${leadId}`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`Failed to fetch messages: ${res.status}`)
+  return res.json()
+}
+
+export async function fetchScoreHistory(leadId: string): Promise<ScoringEvent[]> {
+  const res = await fetch(`${API_BASE}/api/leads/${leadId}/scoring-history`, { cache: 'no-store' })
+  if (!res.ok) throw new Error(`Failed to fetch score history: ${res.status}`)
+  return res.json()
+}
+
+export async function createMessage(data: {
+  leadId: string
+  content: string
+  direction: 'INBOUND' | 'OUTBOUND'
+  timestamp?: string
+}): Promise<Message> {
+  const res = await fetch(`${API_BASE}/api/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`Failed to create message: ${res.status}`)
   return res.json()
 }

@@ -48,4 +48,24 @@ router.get('/', async (_req, res) => {
   }
 });
 
+// GET /api/export/n8n - proxy to n8n webhook-based CSV export
+router.get('/n8n', async (_req, res) => {
+  try {
+    const url = 'http://localhost:5678/webhook/export'
+    const r = await fetch(url)
+    if (!r.ok) {
+      return res.status(502).json({ error: `n8n export failed: ${r.status}` })
+    }
+    const csv = await r.text()
+    const ts = new Date().toISOString().replace(/[:.]/g, '-')
+    const filename = `leads-export-${ts}.csv`
+    res.setHeader('Content-Type', 'text/csv')
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`)
+    return res.status(200).send(csv)
+  } catch (err) {
+    console.error('GET /api/export/n8n error', err)
+    return res.status(500).json({ error: 'Internal Server Error' })
+  }
+})
+
 export default router;

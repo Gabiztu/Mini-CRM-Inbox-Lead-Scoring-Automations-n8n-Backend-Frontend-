@@ -1,0 +1,131 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-scoring",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "f5c592ee-aa66-4353-8302-903cb43c4b97",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -288
+      ],
+      "webhookId": "15d47c6d-03e0-477c-91ee-956a8a81e132"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'http://localhost:4000/api/leads/' + $json.body.leadId }}",
+        "options": {}
+      },
+      "id": "65f82f07-09c8-4560-ad1b-0dd60624d8de",
+      "name": "Get Lead By Id",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        384,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Robustly read lead data (handle n8n version diffs)\nconst lead = $json.body || $json;\n\n// Safely read message from Webhook\nconst message = (($('Webhook').item.json.body?.message) || '').toLowerCase();\n\nlet scoreDelta = 0;\n\n// Define Keyword Arrays\nconst plus20 = ['buy', 'contract', 'urgent'];\nconst plus10 = ['interested', 'demo', 'pricing'];\nconst minus10 = ['unsubscribe', 'remove', 'no thanks'];\n\n// Calculate Score\nfor (const w of plus20) if (message.includes(w)) scoreDelta += 20;\nfor (const w of plus10) if (message.includes(w)) scoreDelta += 10;\nfor (const w of minus10) if (message.includes(w)) scoreDelta -= 10;\n\n// Determine New Score\nconst newScore = (lead.score || 0) + scoreDelta;\n\n// Determine New Status\nlet newStatus = undefined;\n// Only change status if it qualifies and isn't already in a terminal state\nif (newScore > 40 && lead.status !== 'WON' && lead.status !== 'LOST') {\n  newStatus = 'QUALIFIED';\n}\n\nreturn {\n  json: {\n    leadId: lead.id,\n    newScore,\n    newStatus,\n    scoreDelta\n  }\n};\n"
+      },
+      "id": "944e64ef-aeb6-4da4-9102-45ab52f91715",
+      "name": "Calc Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ 'http://localhost:4000/api/leads/' + $json.leadId }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { score: $json.newScore, ...( $json.newStatus ? { status: $json.newStatus } : {} ) } }}",
+        "options": {}
+      },
+      "id": "88294d28-7186-4c2b-99c3-35527464878a",
+      "name": "Update Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        832,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {}
+      },
+      "id": "0c701ec4-644a-4d0f-b3c0-bbf3891b35f8",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        -288
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Lead By Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Lead By Id": {
+      "main": [
+        [
+          {
+            "node": "Calc Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calc Score": {
+      "main": [
+        [
+          {
+            "node": "Update Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lead": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "eaf29928e1eb308c9491124a101b69a5e6ebbd3e20313919a2945662c46fe104"
+  }
+}

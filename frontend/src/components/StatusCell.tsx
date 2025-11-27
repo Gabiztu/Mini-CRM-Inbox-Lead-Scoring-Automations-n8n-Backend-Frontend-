@@ -46,24 +46,33 @@ export function StatusCell({
   }
 
   return (
-    <div className="relative">
+    <div className="relative" onClick={(e) => e.stopPropagation()}>
       <button
         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium text-white ${
           statusBadgeClasses[value] || 'bg-zinc-600'
         }`}
-        onClick={() => setOpen((o) => !o)}
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen((o) => !o)
+        }}
         disabled={pending}
       >
         {value === 'NEEDS_FOLLOWUP' ? 'NEEDS FOLLOWUP' : value}
       </button>
       {open && (
-        <div className="absolute z-20 mt-2 w-40 rounded-md border border-zinc-200 bg-white p-1 shadow-sm">
+        <div
+          className="absolute z-20 mt-2 w-40 rounded-md border border-zinc-200 bg-white p-1 shadow-sm"
+          onClick={(e) => e.stopPropagation()}
+        >
           {STATUSES.map((s) => (
             <Button
               key={s}
               variant="ghost"
               className="h-8 w-full justify-start text-left"
-              onClick={() => apply(s)}
+              onClick={(e) => {
+                e.stopPropagation()
+                apply(s)
+              }}
             >
               {s === 'NEEDS_FOLLOWUP' ? 'NEEDS FOLLOWUP' : s}
             </Button>

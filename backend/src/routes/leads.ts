@@ -91,7 +91,12 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: 'id is required' });
 
-    const lead = await prisma.lead.findUnique({ where: { id }, include: { tags: true } });
+    // Try by ID first
+    let lead = await prisma.lead.findUnique({ where: { id }, include: { tags: true } });
+    // Fallback: if not found and looks like an email, try by unique email
+    if (!lead && id.includes('@')) {
+      lead = await prisma.lead.findUnique({ where: { email: id }, include: { tags: true } });
+    }
     if (!lead) return res.status(404).json({ error: 'Lead not found' });
 
     return res.json(lead);
@@ -136,6 +141,12 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { name, email, status, score, source, tags } = req.body || {};
 
+    // Fetch current lead to compute score delta if needed
+    const current = await prisma.lead.findUnique({ where: { id }, include: { tags: true } });
+    if (!current) return res.status(404).json({ error: 'Lead not found' });
+
+    const nextScore = score !== undefined ? Number(score) : undefined;
+
     // Update lead basic fields
     const updated = await prisma.lead.update({
       where: { id },
@@ -143,11 +154,23 @@ router.put('/:id', async (req, res) => {
         ...(name !== undefined ? { name } : {}),
         ...(email !== undefined ? { email } : {}),
         ...(status !== undefined ? { status } : {}),
-        ...(score !== undefined ? { score: Number(score) } : {}),
+        ...(nextScore !== undefined ? { score: nextScore } : {}),
         ...(source !== undefined ? { source } : {}),
       },
       include: { tags: true },
     });
+
+    // If score changed, persist scoring history event
+    if (nextScore !== undefined && nextScore !== current.score) {
+      const delta = nextScore - current.score;
+      try {
+        await prisma.scoringEvent.create({
+          data: { leadId: id, delta, newScore: nextScore },
+        });
+      } catch (e) {
+        console.error('Failed to record scoring event', e);
+      }
+    }
 
     // Replace tags if provided
     if (Array.isArray(tags)) {
@@ -164,6 +187,23 @@ router.put('/:id', async (req, res) => {
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update lead' });
+  }
+});
+
+// GET /leads/:id/scoring-history
+router.get('/:id/scoring-history', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const exist = await prisma.lead.findUnique({ where: { id } });
+    if (!exist) return res.status(404).json({ error: 'Lead not found' });
+    const events = await prisma.scoringEvent.findMany({
+      where: { leadId: id },
+      orderBy: { createdAt: 'asc' },
+    });
+    return res.json(events);
+  } catch (err: any) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to fetch scoring history' });
   }
 });
 
