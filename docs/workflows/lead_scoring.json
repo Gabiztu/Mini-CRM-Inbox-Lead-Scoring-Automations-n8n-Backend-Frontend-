@@ -1,0 +1,78 @@
+{
+  "name": "Flow 2 — Lead Scoring Automat",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "lead-scoring",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "id": "Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/leads/{{$json.leadId}}",
+        "options": {}
+      },
+      "id": "Get Lead By Id",
+      "name": "Get Lead By Id",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const text = ($prevNode['Webhook'].json.message || '').toLowerCase();\nlet scoreDelta = 0;\nconst plus20 = ['buy','contract','urgent'];\nconst plus10 = ['interested','demo','pricing'];\nconst minus10 = ['unsubscribe','remove','no thanks'];\nfor (const w of plus20) if (text.includes(w)) scoreDelta += 20;\nfor (const w of plus10) if (text.includes(w)) scoreDelta += 10;\nfor (const w of minus10) if (text.includes(w)) scoreDelta -= 10;\nreturn [{ json: { scoreDelta, currentScore: $json.score, leadId: $json.id } }];"
+      },
+      "id": "Calc Score",
+      "name": "Calc Score",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4000/api/leads/{{$json.leadId}}",
+        "options": {},
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParametersJson": "={{ (() => { const newScore = ($json.currentScore || 0) + ($json.scoreDelta || 0); const body = { score: newScore }; if (newScore > 40) body.status = 'QUALIFIED'; return JSON.stringify(body); })() }}"
+      },
+      "id": "Update Lead",
+      "name": "Update Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1020, 300]
+    },
+    {
+      "parameters": {
+        "responseBody": "OK"
+      },
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1260, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [ [ { "node": "Get Lead By Id", "type": "main", "index": 0 } ] ]
+    },
+    "Get Lead By Id": {
+      "main": [ [ { "node": "Calc Score", "type": "main", "index": 0 } ] ]
+    },
+    "Calc Score": {
+      "main": [ [ { "node": "Update Lead", "type": "main", "index": 0 } ] ]
+    },
+    "Update Lead": {
+      "main": [ [ { "node": "Respond", "type": "main", "index": 0 } ] ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}
