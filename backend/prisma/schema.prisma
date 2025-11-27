@@ -23,6 +23,7 @@ model Lead {
   updatedAt       DateTime  @updatedAt
   messages        Message[]
   tags            Tag[]
+  scoringEvents   ScoringEvent[]
 }
 
 model Message {
@@ -40,4 +41,13 @@ model Tag {
   color  String
   lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
   leadId String
+}
+
+model ScoringEvent {
+  id        String   @id @default(uuid())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId    String
+  delta     Int
+  newScore  Int
+  createdAt DateTime @default(now())
 }

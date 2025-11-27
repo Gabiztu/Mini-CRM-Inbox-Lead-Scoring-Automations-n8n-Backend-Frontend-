@@ -41,6 +41,20 @@ router.post('/', async (req, res) => {
       }),
     ]);
 
+    // Fire-and-forget scoring webhook in n8n for every message
+    // Do not block the response if n8n is unavailable; log errors for observability
+    ;(async () => {
+      try {
+        await fetch('http://localhost:5678/webhook/lead-scoring', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId, message: content }),
+        })
+      } catch (e) {
+        console.error('Scoring webhook call failed', e)
+      }
+    })()
+
     return res.status(201).json(message);
   } catch (err) {
     console.error('POST /api/messages error', err);
