@@ -37,6 +37,7 @@
     {
       "parameters": {
         "url": "http://localhost:4000/api/leads/{{$json.leadId}}",
+        "requestMethod": "PUT",
         "options": {},
         "sendBody": true,
         "jsonParameters": true,
