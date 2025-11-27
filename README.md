@@ -1,97 +1,123 @@
 # Mini‑CRM: Inbox, Lead Scoring, Automations (n8n)
 
-One‑day build of a minimal CRM with:
-- Next.js 16 frontend (TypeScript, Tailwind‑style UI)
-- Express + Prisma (SQLite) backend
-- n8n automations (Inbound Scoring + Scheduler)
+Aplicație demo minimală de CRM cu:
+- Frontend: Next.js 16, React 19, TypeScript
+- Backend: Express + Prisma (SQLite)
+- Automations: n8n (Webhookuri + Cron)
 
-## Quick Start
-
-Prerequisites:
+## Cerințe
 - Node.js 20+
+- Windows PowerShell sau terminal compatibil
+- Porturi libere: 3000 (frontend), 4000 (backend), 5678 (n8n)
 
-Command:
-```
-npm install && npm run dev
-```
+## Instalare rapidă
+1) Instalare dependențe și setare DB:
+   npm run setup
+   (rulează: npm install, prisma db push, seed)
 
-This starts:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:4000
-- n8n (automations): http://localhost:5678
+2) Pornire tot stack‑ul (frontend + backend + n8n):
+   npm run dev in folderul principal al proiectului
+   - Frontend: http://localhost:3000
+   - API: http://localhost:4000
+   - n8n: http://localhost:5678
 
-Notes:
-- Workflows are auto‑copied on startup to `./n8n_data/workflows` via a prepare script.
-- If database is empty, run the seed once: `npm run db:seed`.
+Note:
+- Workflowurile n8n se copiază automat din docs/workflows în n8n_data/workflows la pornirea n8n (script: scripts/prepare-n8n.js).
+- Dacă vrei să refaci starea DB: npm run db:push && npm run db:seed
 
-## Architecture
+## Structură
+- frontend/ — aplicația Next.js
+- backend/ — API Express + Prisma (SQLite)
+- docs/workflows/ — fișierele n8n:
+  - inbound_scoring.json (Flow 1)
+  - lead_scoring.json (Flow 2)
+  - export_csv.json (Flow 3)
+  - scheduler.json (Flow 4)
 
-```mermaid
-flowchart LR
-  subgraph Browser
-    UI[Next.js App]
-  end
-  subgraph Server
-    API[Express API]
-    DB[(SQLite via Prisma)]
-    N8N[n8n Workflows]
-  end
+## API — puncte principale
+- Leads:
+  - GET  http://localhost:4000/api/leads?page=1&pageSize=20
+  - GET  http://localhost:4000/api/leads/:id
+  - PUT  http://localhost:4000/api/leads/:id  (ex: { status, score })
+- Mesaje:
+  - GET  http://localhost:4000/api/messages/:leadId
+  - POST http://localhost:4000/api/messages  { leadId, content, direction: "INBOUND"|"OUTBOUND", timestamp? }
+- Export:
+  - GET  http://localhost:4000/api/export           (CSV direct din backend)
+  - GET  http://localhost:4000/api/export/n8n        (proxy la workflow n8n “export”)
 
-  UI <--> |HTTP (JSON)| API
-  API <--> |ORM| DB
-  N8N <--> |HTTP| API
-  ext[Inbound Webhook] --> |POST /webhook/inbound| N8N
-```
+## n8n — Flows (4)
+1) Flow 1: Mesaj Inbound → CRM
+   Endpoint: POST http://localhost:5678/webhook/inbound
+   Body așteptat:
+   {
+     "user": "john.doe",
+     "message": "Sunt interesat de preț",
+     "timestamp": "2025-11-27T10:00:00.000Z"  // opțional
+   }
+   Efect:
+   - caută un lead (dacă nu există, creează cu email user@exemple.com),
+   - salvează mesajul ca INBOUND în CRM,
+   - calculează un delta scor și face PUT /api/leads/:id.
 
-## Tech Stack
-- Frontend: Next.js 16, React 19, TypeScript, lightweight shadcn‑style components
-- Backend: Express, TypeScript, Prisma 5, SQLite
-- Automations: n8n (Webhook scoring + Scheduled status updates)
 
-## API (Brief)
-- Leads
-  - GET `/api/leads` (q/search, status, paging)
-  - GET `/api/leads/:id`
-  - POST `/api/leads` { name, email, status?, source?, score?, tags?: string[] }
-  - PUT `/api/leads/:id` { name?, email?, status?, score?, source?, tags?: string[] }
-  - DELETE `/api/leads/:id`
-- Messages
-  - GET `/api/messages/:leadId`
-  - POST `/api/messages` { leadId, content, direction: "INBOUND"|"OUTBOUND" }
-- Export
-  - GET `/api/export` → CSV download
+2) Flow 2: Lead Scoring (webhook dedicat)
+   Endpoint: POST http://localhost:5678/webhook/lead-scoring
+   Body:
+   {
+     "leadId": "<ID-ul leadului>",
+     "message": "urgent contract"
+   }
+   Efect:
+   - citește leadul, calculează scorul (+20 pentru “buy/contract/urgent”, +10 pentru “interested/demo/pricing”, −10 pentru “unsubscribe/remove/no thanks”),
+   - dacă scorul > 40 și statusul nu e WON/LOST, setează QUALIFIED,
+   - PUT /api/leads/:id cu { score, status? }.
 
-## n8n Setup
-- We run n8n locally with: `npm run dev:n8n`
-- The script sets `N8N_USER_FOLDER=./n8n_data` so n8n stores data in this local folder.
-- A prepare step (`predev:n8n`) copies all workflow JSONs from `docs/workflows/` to `n8n_data/workflows/`.
-  - `docs/workflows/inbound_scoring.json`
-  - `docs/workflows/scheduler.json`
+   Test (PowerShell):
+   $leadId = '9234cdf7-21a9-47d5-822f-ce971b81cf26' 
 
-Endpoints used by n8n:
-- Webhook (inbound scoring): `POST http://localhost:5678/webhook/inbound`
-- Backend API base: `http://localhost:4000/api`
+   Invoke-WebRequest -Uri 'http://localhost:5678/webhook/lead-scoring' -Method POST -ContentType 'application/json' -Body (@{ leadId=$leadId; message='urgent' } | ConvertTo-Json -Depth 5)
 
-## Database & Seeding
-- DB: SQLite (created automatically by Prisma).
-- Seed: run once with:
-```
-npm run db:push && npm run db:seed
-```
+   Istoric scor (opțional, dacă ui-ul îl afișează): Invoke-RestMethod -Uri "http://localhost:4000/api/leads/$leadId" 
 
-## Scripts
-- `npm run dev` → Frontend + Backend + n8n (with workflow auto‑copy)
-- `npm run setup` → Install all deps + push DB + seed
-- `npm run db:push` → Prisma migrate (push schema)
-- `npm run db:seed` → Seed sample data
+3) Flow 3: Export CSV
+   Endpoint: GET http://localhost:5678/webhook/export
+   Efect:
+   - citește leadurile din API,
+   - generează CSV cu antet “sep=,” + CRLF pentru Excel,
+   - răspunde cu text/csv.
 
-## Troubleshooting
-- Ports in use:
-  - Frontend 3000, Backend 4000, n8n 5678. Stop conflicting apps or change ports.
-- Windows/Prisma EPERM during install:
-  - If `npm ci` fails on `query_engine-windows.dll.node`, close running Node processes, temporarily pause antivirus, or skip reinstall and use existing `node_modules`.
-- Next.js workspace root warning:
-  - Safe to ignore; or remove extra lockfiles.
+   Descărcare (PowerShell):
+   Invoke-WebRequest -Uri "http://localhost:5678/webhook/export" -OutFile "$env:USERPROFILE\\Desktop\\leads-export.csv"
 
-## Demo (see DEMO_SCRIPT.md)
-Five flows: Dashboard & filters, inline editing, inbound webhook, timeline & score update, export CSV.
+   Dacă Excel afișează totul pe o singură linie:
+   - asta va fi o problema pentru mai tarziu, important este ca se descarca toate informatiile
+
+   Alternativ backend:
+   - GET http://localhost:4000/api/export         (CSV backend)
+   - GET http://localhost:4000/api/export/n8n     (CSV via workflow n8n)
+
+4) Flow 4: Scheduler (Cron, la fiecare minut)
+   Efect:
+   - marchează leadurile ca:
+     - NEEDS_FOLLOWUP dacă ultima interacțiune > 2 ore,
+     - COLD dacă > 48 ore (ignoră WON/LOST).
+   - face PUT /api/leads/:id cu noul status.
+
+   Test rapid (simulează inactivitate):
+   $leadId = '9234cdf7-21a9-47d5-822f-ce971b81cf26' 
+
+   $ts = (Get-Date).AddHours(-3).ToString("o")   # >2h pentru NEEDS_FOLLOWUP
+
+   $ts=(Get-Date).AddHours(-72).ToString('o'); Invoke-RestMethod -Uri 'http://localhost:4000/api/messages' -Method POST -ContentType 'application/json' -Body (@{ leadId=$leadId; content='backdate 72h'; direction='INBOUND'; timestamp=$ts } | ConvertTo-Json -Depth 5)
+
+   // Așteaptă 1–2 minute pentru tick-ul Cron, apoi verifică:
+   Invoke-RestMethod -Uri "http://localhost:4000/api/leads/$leadId"
+
+   Pentru COLD folosește (exemplu): (Get-Date).AddHours(-49)
+
+## Probleme uzuale
+- Porturi ocupate: oprește aplicațiile pe 3000/4000/5678 sau schimbă porturile.
+- CSV într-o singură linie: folosește fișierul generat cu “sep=,” sau importă din Data → From Text/CSV (UTF‑8, Comma).
+- PowerShell vs “curl”: pe Windows, folosește “curl.exe” sau Invoke-RestMethod/Invoke-WebRequest, nu aliasul PowerShell “curl” care mapează altfel.
+
