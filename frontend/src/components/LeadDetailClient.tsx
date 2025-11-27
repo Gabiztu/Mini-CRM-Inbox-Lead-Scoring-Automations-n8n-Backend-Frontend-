@@ -3,17 +3,19 @@
 import * as React from 'react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { fetchLeadDetails, fetchMessages, type Lead, type Message } from '@/lib/api'
+import { fetchLeadDetails, fetchMessages, fetchScoreHistory, type Lead, type Message, type ScoringEvent } from '@/lib/api'
 import { LeadInfoCard } from '@/components/LeadInfoCard'
 import { MessageTimeline } from '@/components/MessageTimeline'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ScoreHistory } from '@/components/ScoreHistory'
 
 export function LeadDetailClient({ id }: { id: string }) {
   const params = useParams() as { id?: string } | null
   const effectiveId = id ?? params?.id ?? ''
   const [lead, setLead] = useState<Lead | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
+  const [events, setEvents] = useState<ScoringEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -21,11 +23,12 @@ export function LeadDetailClient({ id }: { id: string }) {
     if (!effectiveId) return
     let mounted = true
     setLoading(true)
-    Promise.all([fetchLeadDetails(effectiveId), fetchMessages(effectiveId)])
-      .then(([l, m]) => {
+    Promise.all([fetchLeadDetails(effectiveId), fetchMessages(effectiveId), fetchScoreHistory(effectiveId)])
+      .then(([l, m, ev]) => {
         if (!mounted) return
         setLead(l)
         setMessages(m)
+        setEvents(ev)
         setError(null)
       })
       .catch((e) => setError(String(e)))
@@ -84,6 +87,9 @@ export function LeadDetailClient({ id }: { id: string }) {
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
       <div className="lg:col-span-4">
         <LeadInfoCard lead={lead} />
+        <div className="mt-4">
+          <ScoreHistory events={events} />
+        </div>
       </div>
       <div className="lg:col-span-8">
         <div className="rounded-lg border border-zinc-200 bg-white">
