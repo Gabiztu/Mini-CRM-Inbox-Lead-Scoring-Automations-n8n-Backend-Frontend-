@@ -1,68 +1,107 @@
 {
-  "name": "Lead Status Scheduler",
   "nodes": [
     {
       "parameters": {
         "triggerTimes": {
           "item": [
-            { "mode": "everyMinute", "minutesInterval": 15 }
+            {
+              "mode": "everyMinute"
+            }
           ]
         }
       },
-      "id": "Cron",
+      "id": "3396a155-3d40-4e9f-9ec3-27a47ac43a0a",
       "name": "Cron",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
-      "position": [240, 300]
+      "position": [
+        -80,
+        96
+      ]
     },
     {
       "parameters": {
         "url": "http://localhost:4000/api/leads?page=1&pageSize=1000",
         "options": {}
       },
-      "id": "Fetch Leads",
+      "id": "d3bbe5e5-ebd9-412a-9564-9b5c961220cf",
       "name": "Fetch Leads",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [500, 300]
+      "position": [
+        144,
+        96
+      ]
     },
     {
       "parameters": {
-        "functionCode": "const data = items[0]?.json || {};\nconst leads = Array.isArray(data.items) ? data.items : [];\nconst now = new Date();\nconst twoHours = 2 * 60 * 60 * 1000;\nconst fortyEightHours = 48 * 60 * 60 * 1000;\n\nconst updates = [];\nfor (const lead of leads) {\n  const last = lead.lastInteraction ? new Date(lead.lastInteraction) : null;\n  if (!last) continue;\n  const diff = now - last;\n  // Cold logic (48h) — skip Won/Lost\n  if (diff > fortyEightHours && lead.status !== 'WON' && lead.status !== 'LOST' && lead.status !== 'COLD') {\n    updates.push({ json: { id: lead.id, newStatus: 'COLD' } });\n    continue;\n  }\n  // Needs Followup (2h) — skip Won/Lost/Cold\n  if (diff > twoHours && lead.status !== 'WON' && lead.status !== 'LOST' && lead.status !== 'COLD' && lead.status !== 'NEEDS_FOLLOWUP') {\n    updates.push({ json: { id: lead.id, newStatus: 'NEEDS_FOLLOWUP' } });\n  }\n}\nreturn updates;"
+        "jsCode": "// Robustly handle response structure (Array vs {items:[]})\nconst responseData = items[0].json;\nconst leads = Array.isArray(responseData) ? responseData : (responseData.items || []);\n\nconst now = new Date();\nconst updates = [];\n\nfor (const lead of leads) {\n  if (!lead.lastInteraction) continue;\n  \n  const lastInteraction = new Date(lead.lastInteraction);\n  const diffMs = now - lastInteraction;\n  const diffHours = diffMs / (1000 * 60 * 60);\n  \n  let newStatus = null;\n  \n  // Skip terminal states\n  if (['WON', 'LOST'].includes(lead.status)) continue;\n  \n  // Logic: > 48 hours -> COLD\n  if (diffHours > 48) {\n    if (lead.status !== 'COLD') newStatus = 'COLD';\n  }\n  // Logic: > 2 hours -> NEEDS_FOLLOWUP\n  else if (diffHours > 2) {\n    if (lead.status !== 'NEEDS_FOLLOWUP' && lead.status !== 'COLD') {\n      newStatus = 'NEEDS_FOLLOWUP';\n    }\n  }\n  \n  // Only add to output if status actually changes\n  if (newStatus) {\n    updates.push({\n      json: {\n        id: lead.id,\n        name: lead.name,\n        oldStatus: lead.status,\n        newStatus: newStatus,\n        hoursSinceInteraction: Math.round(diffHours * 10) / 10\n      }\n    });\n  }\n}\n\nreturn updates;"
       },
-      "id": "Compute Updates",
+      "id": "239eff76-c91b-41bb-a8c4-b7f20c5929de",
       "name": "Compute Updates",
-      "type": "n8n-nodes-base.function",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [760, 300]
+      "position": [
+        368,
+        96
+      ]
     },
     {
       "parameters": {
-        "url": "http://localhost:4000/api/leads/{{$json.id}}",
-        "requestMethod": "PUT",
-        "options": {},
+        "method": "PUT",
+        "url": "={{ 'http://localhost:4000/api/leads/' + $json.id }}",
         "sendBody": true,
-        "jsonParameters": true,
-        "bodyParametersJson": "{\n  \"status\": \"={{$json.newStatus}}\"\n}"
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: $json.newStatus } }}",
+        "options": {}
       },
-      "id": "Update Lead Status",
+      "id": "88166c2c-1da1-4dcc-91b9-7aefb00b8c5b",
       "name": "Update Lead Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1020, 300]
+      "position": [
+        592,
+        96
+      ]
     }
   ],
   "connections": {
     "Cron": {
-      "main": [ [ { "node": "Fetch Leads", "type": "main", "index": 0 } ] ]
+      "main": [
+        [
+          {
+            "node": "Fetch Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch Leads": {
-      "main": [ [ { "node": "Compute Updates", "type": "main", "index": 0 } ] ]
+      "main": [
+        [
+          {
+            "node": "Compute Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Compute Updates": {
-      "main": [ [ { "node": "Update Lead Status", "type": "main", "index": 0 } ] ]
+      "main": [
+        [
+          {
+            "node": "Update Lead Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
-  "settings": {}
+  "pinData": {},
+  "meta": {
+    "instanceId": "eaf29928e1eb308c9491124a101b69a5e6ebbd3e20313919a2945662c46fe104"
+  }
 }

@@ -6,41 +6,43 @@
         "path": "inbound",
         "options": {}
       },
-      "id": "webhook-node",
+      "id": "d750a0f3-00e2-4a49-93f5-45b7c872dfc7",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [460, 460]
+      "position": [
+        -416,
+        -80
+      ],
+      "webhookId": "05ac830d-803d-4478-b1d4-3dcfd713a1d4"
     },
     {
       "parameters": {
         "url": "http://localhost:4000/api/leads",
-        "options": {},
-        "queryParameters": {
-          "parameter": [
-            {
-              "name": "search",
-              "value": "={{ $('Webhook').item.json.body.user }}"
-            }
-          ]
-        }
+        "options": {}
       },
-      "id": "get-lead-node",
+      "id": "807af2b5-6f98-4c11-af2e-9bc2a2fb3676",
       "name": "Get Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [680, 460],
+      "position": [
+        -192,
+        -80
+      ],
       "alwaysOutputData": true
     },
     {
       "parameters": {
         "jsCode": "// Normalize Backend Response\nconst data = items[0].json;\n\nif (Array.isArray(data)) {\n  return data.length > 0 ? [{json: data[0]}] : [{json: {}}];\n}\n\nif (data.items && Array.isArray(data.items)) {\n  return data.items.length > 0 ? [{json: data.items[0]}] : [{json: {}}];\n}\n\nreturn items;"
       },
-      "id": "normalize-node",
+      "id": "f5d3dea8-a962-4ee9-92ac-02a21ed1fced",
       "name": "Normalize",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 460]
+      "position": [
+        32,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -53,11 +55,14 @@
           ]
         }
       },
-      "id": "check-exists-node",
+      "id": "39a39b71-88ee-4739-b6ac-3d1012cdb90d",
       "name": "Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1120, 460]
+      "position": [
+        256,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -68,11 +73,14 @@
         "jsonBody": "={{ JSON.stringify({\n  name: $('Webhook').item.json.body.user,\n  email: $('Webhook').item.json.body.user.includes('@') ? $('Webhook').item.json.body.user : $('Webhook').item.json.body.user + '@example.com',\n  source: 'Inbound Webhook'\n}) }}",
         "options": {}
       },
-      "id": "create-lead-node",
+      "id": "c9e17160-438d-4ff9-9978-8be6b37103ee",
       "name": "Create Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1340, 580]
+      "position": [
+        464,
+        48
+      ]
     },
     {
       "parameters": {
@@ -95,11 +103,14 @@
         },
         "options": {}
       },
-      "id": "set-payload-node",
+      "id": "f598bf24-9d44-40fd-b47c-d4b11df042b0",
       "name": "Set Payload",
       "type": "n8n-nodes-base.set",
       "typeVersion": 2,
-      "position": [1560, 460]
+      "position": [
+        688,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -110,21 +121,27 @@
         "jsonBody": "={{ JSON.stringify({\n  leadId: $json.leadId,\n  content: $json.message,\n  direction: 'INBOUND',\n  timestamp: $json.timestamp\n}) }}",
         "options": {}
       },
-      "id": "log-message-node",
+      "id": "e0f712c3-ca44-4c72-9f76-5c57a2619544",
       "name": "Log Message",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1780, 460]
+      "position": [
+        912,
+        -80
+      ]
     },
     {
       "parameters": {
         "jsCode": "// FIX: Read directly from Webhook to avoid 'undefined' error\nconst message = $('Webhook').item.json.body.message.toLowerCase();\n\n// FIX: Read leadId from previous node (which is the Message object from API)\n// The API returns { id: 'msg_...', leadId: 'lead_...', content: '...' }\nconst leadId = $json.leadId;\n\nlet scoreDelta = 0;\n\n// Scoring Logic\nif (message.includes('buy') || message.includes('urgent')) {\n  scoreDelta += 20;\n} else if (message.includes('interested') || message.includes('demo')) {\n  scoreDelta += 10;\n}\n\nif (message.includes('unsubscribe') || message.includes('remove')) {\n  scoreDelta -= 10;\n}\n\nlet newStatus = undefined;\nif (scoreDelta > 30) newStatus = 'QUALIFIED';\n\nreturn {\n  json: {\n    leadId,\n    score: scoreDelta,\n    status: newStatus\n  }\n};"
       },
-      "id": "calc-score-node",
+      "id": "4ff59553-e90f-4458-b57a-a65b0dcda1a0",
       "name": "Calc Score",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 460]
+      "position": [
+        1136,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -135,11 +152,14 @@
         "jsonBody": "={{ JSON.stringify({\n  score: $json.score,\n  ...( $json.status ? { status: $json.status } : {} )\n}) }}",
         "options": {}
       },
-      "id": "update-lead-node",
+      "id": "ac780f3f-3a1e-44ce-bff8-dc7716ae030f",
       "name": "Update Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2220, 460]
+      "position": [
+        1344,
+        -80
+      ]
     }
   ],
   "connections": {
@@ -238,5 +258,9 @@
         ]
       ]
     }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "eaf29928e1eb308c9491124a101b69a5e6ebbd3e20313919a2945662c46fe104"
   }
 }
