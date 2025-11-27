@@ -26,7 +26,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const data = items[0]?.json || {};\nconst leads = Array.isArray(data.items) ? data.items : [];\nconst columns = ['ID','Name','Email','Status','Score','Source','Last Interaction'];\nfunction csvEscape(v){ if(v==null) return ''; const s=String(v); if(/[\",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"'; return s; }\nconst rows = [columns.join(',')];\nfor (const l of leads){\n  rows.push([l.id,l.name,l.email,l.status,l.score,l.source||'',l.lastInteraction||''].map(csvEscape).join(','));\n}\nreturn [{ json: { csv: rows.join('\n') } }];"
+        "functionCode": "const data = items[0]?.json || {};\nconst leads = Array.isArray(data.items) ? data.items : [];\nconst columns = ['ID','Name','Email','Status','Score','Source','Last Interaction'];\nfunction csvEscape(v){ if(v==null) return ''; const s=String(v); if(/[\\\",\\\\n,]/.test(s)) return '\\\"'+s.replace(/\\\"/g,'\\\"\\\"')+'\\\"'; return s; }\nconst rows = [columns.join(',')];\nfor (const l of leads){\n  rows.push([l.id,l.name,l.email,l.status,l.score,l.source||'',l.lastInteraction||''].map(csvEscape).join(','));\n}\nreturn [{ json: { csv: rows.join('\\\\n') } }];"
       },
       "id": "To CSV",
       "name": "To CSV",
