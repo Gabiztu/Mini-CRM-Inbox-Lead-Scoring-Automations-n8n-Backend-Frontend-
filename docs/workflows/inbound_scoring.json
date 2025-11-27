@@ -1,197 +1,242 @@
 {
-  "name": "Inbound Scoring Webhook",
   "nodes": [
     {
       "parameters": {
-        "path": "inbound",
         "httpMethod": "POST",
-        "responseMode": "onReceived",
-        "options": {
-          "responseData": "{\"status\":\"ok\"}",
-          "responseCode": 200
-        }
+        "path": "inbound",
+        "options": {}
       },
-      "id": "Webhook",
+      "id": "webhook-node",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [260, 300]
+      "position": [460, 460]
     },
     {
       "parameters": {
         "url": "http://localhost:4000/api/leads",
         "options": {},
-        "queryParametersUi": {
+        "queryParameters": {
           "parameter": [
-            { "name": "search", "value": "={{$json.user}}" }
+            {
+              "name": "search",
+              "value": "={{ $('Webhook').item.json.body.user }}"
+            }
           ]
         }
       },
-      "id": "Get Lead",
+      "id": "get-lead-node",
       "name": "Get Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [540, 300]
+      "position": [680, 460],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize Backend Response\nconst data = items[0].json;\n\nif (Array.isArray(data)) {\n  return data.length > 0 ? [{json: data[0]}] : [{json: {}}];\n}\n\nif (data.items && Array.isArray(data.items)) {\n  return data.items.length > 0 ? [{json: data.items[0]}] : [{json: {}}];\n}\n\nreturn items;"
+      },
+      "id": "normalize-node",
+      "name": "Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 460]
     },
     {
       "parameters": {
         "conditions": {
-          "number": [
-            { "value1": "={{$json.total}}", "operation": "larger", "value2": 0 }
+          "string": [
+            {
+              "value1": "={{ $json.id }}",
+              "operation": "isNotEmpty"
+            }
           ]
         }
       },
-      "id": "Found?",
+      "id": "check-exists-node",
       "name": "Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [780, 300]
+      "position": [1120, 460]
     },
     {
       "parameters": {
+        "method": "POST",
         "url": "http://localhost:4000/api/leads",
-        "requestMethod": "POST",
-        "options": {},
         "sendBody": true,
-        "jsonParameters": true,
-        "bodyParametersJson": "{\n  \"name\": \"={{$prevNode[\\\"Webhook\\\"].json.user}}\",\n  \"email\": \"={{$prevNode[\\\"Webhook\\\"].json.user}}\",\n  \"status\": \"NEW\",\n  \"source\": \"inbound\"\n}"
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  name: $('Webhook').item.json.body.user,\n  email: $('Webhook').item.json.body.user.includes('@') ? $('Webhook').item.json.body.user : $('Webhook').item.json.body.user + '@example.com',\n  source: 'Inbound Webhook'\n}) }}",
+        "options": {}
       },
-      "id": "Create Lead",
+      "id": "create-lead-node",
       "name": "Create Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1020, 460]
+      "position": [1340, 580]
     },
     {
       "parameters": {
         "keepOnlySet": true,
         "values": {
           "string": [
-            { "name": "leadId", "value": "={{$json.items[0].id}}" },
-            { "name": "message", "value": "={{$prevNode[\"Webhook\"].json.message}}" }
+            {
+              "name": "leadId",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Webhook').item.json.body.message }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $('Webhook').item.json.body.timestamp }}"
+            }
           ]
-        }
-      },
-      "id": "Set Existing",
-      "name": "Set Existing",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [1020, 240]
-    },
-    {
-      "parameters": {
-        "keepOnlySet": true,
-        "values": {
-          "string": [
-            { "name": "leadId", "value": "={{$json.id}}" },
-            { "name": "message", "value": "={{$prevNode[\"Webhook\"].json.message}}" }
-          ]
-        }
-      },
-      "id": "Set New",
-      "name": "Set New",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [1240, 460]
-    },
-    {
-      "parameters": {
-        "mode": "passThrough",
-        "combineMode": "mergeByIndex"
-      },
-      "id": "Merge Context",
-      "name": "Merge Context",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2,
-      "position": [1420, 320]
-    },
-    {
-      "parameters": {
-        "url": "http://localhost:4000/api/messages",
-        "requestMethod": "POST",
-        "options": {},
-        "sendBody": true,
-        "jsonParameters": true,
-        "bodyParametersJson": "{\n  \"leadId\": \"={{$json.leadId}}\",\n  \"content\": \"={{$json.message}}\",\n  \"direction\": \"INBOUND\",\n  \"timestamp\": \"={{$prevNode[\\\"Webhook\\\"].json.timestamp}}\"\n}"
-      },
-      "id": "Create Message",
-      "name": "Create Message",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1640, 320]
-    },
-    {
-      "parameters": {
-        "url": "http://localhost:4000/api/leads/{{$json.leadId}}",
+        },
         "options": {}
       },
-      "id": "Get Lead By Id",
-      "name": "Get Lead By Id",
+      "id": "set-payload-node",
+      "name": "Set Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1560, 460]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:4000/api/messages",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  leadId: $json.leadId,\n  content: $json.message,\n  direction: 'INBOUND',\n  timestamp: $json.timestamp\n}) }}",
+        "options": {}
+      },
+      "id": "log-message-node",
+      "name": "Log Message",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1860, 320]
+      "position": [1780, 460]
     },
     {
       "parameters": {
-        "functionCode": "const text = ($prevNode['Webhook'].json.message || '').toLowerCase();\nlet scoreDelta = 0;\nif (text.includes('buy') || text.includes('contract') || text.includes('urgent')) scoreDelta += 20;\nif (text.includes('interested') || text.includes('demo') || text.includes('pricing')) scoreDelta += 10;\nif (text.includes('unsubscribe') || text.includes('remove') || text.includes('no thanks')) scoreDelta -= 10;\nreturn [{ json: { scoreDelta, currentScore: $json.score, leadId: $json.id } }];"
+        "jsCode": "// FIX: Read directly from Webhook to avoid 'undefined' error\nconst message = $('Webhook').item.json.body.message.toLowerCase();\n\n// FIX: Read leadId from previous node (which is the Message object from API)\n// The API returns { id: 'msg_...', leadId: 'lead_...', content: '...' }\nconst leadId = $json.leadId;\n\nlet scoreDelta = 0;\n\n// Scoring Logic\nif (message.includes('buy') || message.includes('urgent')) {\n  scoreDelta += 20;\n} else if (message.includes('interested') || message.includes('demo')) {\n  scoreDelta += 10;\n}\n\nif (message.includes('unsubscribe') || message.includes('remove')) {\n  scoreDelta -= 10;\n}\n\nlet newStatus = undefined;\nif (scoreDelta > 30) newStatus = 'QUALIFIED';\n\nreturn {\n  json: {\n    leadId,\n    score: scoreDelta,\n    status: newStatus\n  }\n};"
       },
-      "id": "Calc Score",
+      "id": "calc-score-node",
       "name": "Calc Score",
-      "type": "n8n-nodes-base.function",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2080, 320]
+      "position": [2000, 460]
     },
     {
       "parameters": {
-        "url": "http://localhost:4000/api/leads/{{$json.leadId}}",
-        "requestMethod": "PUT",
-        "options": {},
+        "method": "PUT",
+        "url": "={{ 'http://localhost:4000/api/leads/' + $json.leadId }}",
         "sendBody": true,
-        "jsonParameters": true,
-        "bodyParametersJson": "={{ (() => { const newScore = ($json.currentScore || 0) + ($json.scoreDelta || 0); const body = { score: newScore }; if (newScore > 40) body.status = 'QUALIFIED'; return JSON.stringify(body); })() }}"
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  score: $json.score,\n  ...( $json.status ? { status: $json.status } : {} )\n}) }}",
+        "options": {}
       },
-      "id": "Update Lead",
+      "id": "update-lead-node",
       "name": "Update Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2300, 320]
+      "position": [2220, 460]
     }
   ],
   "connections": {
     "Webhook": {
-      "main": [ [ { "node": "Get Lead", "type": "main", "index": 0 } ] ]
+      "main": [
+        [
+          {
+            "node": "Get Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Lead": {
-      "main": [ [ { "node": "Found?", "type": "main", "index": 0 } ] ]
+      "main": [
+        [
+          {
+            "node": "Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize": {
+      "main": [
+        [
+          {
+            "node": "Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Found?": {
       "main": [
-        [ { "node": "Set Existing", "type": "main", "index": 0 } ],
-        [ { "node": "Create Lead", "type": "main", "index": 0 } ]
+        [
+          {
+            "node": "Set Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Create Lead": {
-      "main": [ [ { "node": "Set New", "type": "main", "index": 0 } ] ]
+      "main": [
+        [
+          {
+            "node": "Set Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Set Existing": {
-      "main": [ [ { "node": "Merge Context", "type": "main", "index": 0 } ] ]
+    "Set Payload": {
+      "main": [
+        [
+          {
+            "node": "Log Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Set New": {
-      "main": [ [ { "node": "Merge Context", "type": "main", "index": 1 } ] ]
-    },
-    "Merge Context": {
-      "main": [ [ { "node": "Create Message", "type": "main", "index": 0 } ] ]
-    },
-    "Create Message": {
-      "main": [ [ { "node": "Get Lead By Id", "type": "main", "index": 0 } ] ]
-    },
-    "Get Lead By Id": {
-      "main": [ [ { "node": "Calc Score", "type": "main", "index": 0 } ] ]
+    "Log Message": {
+      "main": [
+        [
+          {
+            "node": "Calc Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Calc Score": {
-      "main": [ [ { "node": "Update Lead", "type": "main", "index": 0 } ] ]
+      "main": [
+        [
+          {
+            "node": "Update Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
-  },
-  "active": false,
-  "settings": {}
+  }
 }
